@@ -1,0 +1,51 @@
+name: Exordium CQL tap -  CI Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  push:
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+
+jobs:
+  ci-tests:
+    runs-on: ${{ matrix.os }}
+    env:
+      ci_tests: true
+    strategy:
+      matrix:
+       os:
+         - ubuntu-latest
+         - macos-latest
+       emacs_version:
+         - 29.4
+         - snapshot
+    steps:
+      - uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs_version }}
+      - uses: actions/checkout@v4
+        with:
+          # repository: 'emacs-exordium/exordium'
+          repository: 'pkryger/exordium'
+          path: '.emacs.d'
+          ref: master
+      - uses: actions/checkout@v4
+        with:
+          path: '.emacs.d/taps/cqltap'
+
+      - name: Link $GITHUB_WORKSPACE/.emacs.d to $HOME/.emacs.d
+        run: ln -s "${GITHUB_WORKSPACE}/.emacs.d" "${HOME}/.emacs.d"
+
+      - name: Install bash # Needed for mapfile on macOS,
+                           # Installing early so all scripts run in
+                           # the same environment
+        if: matrix.os == 'macos-latest'
+        run: brew install bash
+
+      - name: First start # So most modules are pulled in from melpa and gnu
+        run: '"${HOME}/.emacs.d/.ci/first-start.sh"'
